@@ -1,0 +1,38 @@
+﻿.\gradlew.bat : D:\Zahri\Mobile 
+Apps\street-burger-backend\src\main\java\com\streetburger\controller\OrderController.java:63: 
+error: incompatible types: BigDecimal cannot be converted to Double
+At line:1 char:1
++ .\gradlew.bat compileJava > build_output.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (D:\Zahri\Mobile...erted to Double:String) [], Re 
+   moteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+                item.setPrice(menuItem.getPrice());
+                                               ^
+D:\Zahri\Mobile 
+Apps\street-burger-backend\src\main\java\com\streetburger\controller\OrderController.java:65: 
+error: bad operand types for binary operator '*'
+                total += menuItem.getPrice() * itemReq.getQuantity();
+                                             ^
+  first type:  BigDecimal
+  second type: Integer
+
+> Task :compileJava
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+2 errors
+
+> Task :compileJava FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 3s
+1 actionable task: 1 executed
