@@ -18,6 +18,10 @@ import com.streetburger.dto.NotificationRequest;
 import com.streetburger.model.Notification;
 import com.streetburger.repository.NotificationRepository;
 import com.streetburger.repository.UserRepository;
+import com.streetburger.service.PushNotificationService;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/notification")
@@ -30,6 +34,9 @@ public class NotificationController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PushNotificationService pushNotificationService;
+
     @PostMapping("/add")
     @Operation(summary = "Create a new notification (Admin)")
     public ResponseEntity<ApiResponse<Notification>> addNotification(@RequestBody NotificationRequest request) {
@@ -41,7 +48,7 @@ public class NotificationController {
         notification.setCreatedAt(LocalDateTime.now());
 
         if (request.getTargetUserId() != null) {
-            User targetUser = userRepository.findById(request.getTargetUserId()).orElse(null);
+            User targetUser = userRepository.findById(Objects.requireNonNull(request.getTargetUserId())).orElse(null);
             notification.setTargetUser(targetUser);
             notification.setIsGlobal(false);
         }
@@ -52,6 +59,26 @@ public class NotificationController {
         }
 
         Notification saved = notificationRepository.save(notification);
+
+        // Send push notification
+        try {
+            if (saved.getIsGlobal()) {
+                List<String> tokens = userRepository.findAll().stream()
+                        .map(User::getPushToken)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+                pushNotificationService.sendPushNotification(tokens, saved.getTitle(), saved.getMessage(), null);
+            } else if (saved.getTargetUser() != null && saved.getTargetUser().getPushToken() != null) {
+                pushNotificationService.sendPushNotification(
+                        Collections.singletonList(saved.getTargetUser().getPushToken()),
+                        saved.getTitle(),
+                        saved.getMessage(),
+                        null);
+            }
+        } catch (Exception e) {
+            System.err.println("Error triggering push notification: " + e.getMessage());
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Notification created", saved));
     }

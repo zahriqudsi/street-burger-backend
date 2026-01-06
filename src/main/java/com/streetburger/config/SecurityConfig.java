@@ -21,6 +21,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.streetburger.security.CustomAccessDeniedHandler;
+import com.streetburger.security.CustomAuthenticationEntryPoint;
 import com.streetburger.security.JwtAuthenticationFilter;
 
 @Configuration
@@ -54,24 +56,34 @@ public class SecurityConfig {
         return source;
     }
 
+    @Autowired
+    private CustomAuthenticationEntryPoint authenticationEntryPoint;
+
+    @Autowired
+    private CustomAccessDeniedHandler accessDeniedHandler;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/api-docs/**", "/v3/api-docs/**")
+                        // Public preflight requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Public authentication endpoints/Swagger
+                        .requestMatchers("/auth/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                                "/api-docs/**", "/swagger-resources/**", "/webjars/**", "/error", "/favicon.ico")
                         .permitAll()
 
-                        // Public read access
-                        .requestMatchers(HttpMethod.GET, "/menu/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/reviews").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/restaurant-info/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/gallery/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/chefs/**").permitAll()
+                        // Public read access for the application (broadened patterns)
+                        .requestMatchers("/menu/**", "/reviews/**", "/restaurant-info/**", "/gallery/**", "/chefs/**",
+                                "/images/**")
+                        .permitAll()
 
                         // Protected endpoints
                         .requestMatchers("/reservations/**").authenticated()
@@ -80,6 +92,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/reviews/**").authenticated()
                         .requestMatchers("/rwdpts/**").authenticated()
                         .requestMatchers("/notification/**").authenticated()
+                        .requestMatchers("/users/me").authenticated()
                         .requestMatchers("/users/**").authenticated()
 
                         // Admin only
@@ -88,6 +101,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/menu/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/menu/**").hasRole("ADMIN")
 
+                        // Everything else requires authentication
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

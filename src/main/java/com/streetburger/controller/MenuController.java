@@ -98,6 +98,9 @@ public class MenuController {
     @PostMapping("/items")
     @Operation(summary = "Add new item (Admin only)")
     public ResponseEntity<ApiResponse<MenuItem>> addItem(@RequestBody MenuItem item) {
+        if (item.getCategory() != null && item.getCategory().getId() != null) {
+            categoryRepository.findById(item.getCategory().getId()).ifPresent(item::setCategory);
+        }
         MenuItem saved = itemRepository.save(item);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Item created", saved));
@@ -121,7 +124,13 @@ public class MenuController {
                     existing.setIsAvailable(item.getIsAvailable());
                     existing.setIsPopular(item.getIsPopular());
                     existing.setDisplayOrder(item.getDisplayOrder());
-                    existing.setCategory(item.getCategory());
+
+                    if (item.getCategory() != null && item.getCategory().getId() != null) {
+                        categoryRepository.findById(item.getCategory().getId()).ifPresent(existing::setCategory);
+                    } else {
+                        existing.setCategory(null);
+                    }
+
                     itemRepository.save(existing);
                     return ResponseEntity.ok(ApiResponse.success("Item updated", existing));
                 })
